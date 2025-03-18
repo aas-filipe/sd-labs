@@ -10,6 +10,7 @@ import java.net.SocketException;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -56,7 +57,10 @@ public class Discovery {
 	private final String serviceURI;
 	private final MulticastSocket ms;
 
-	private Map<String, Queue<String>> knownServices;
+	private final Map<String, List<URI>> knownServices;
+	private final Object mutex = new Object();
+
+
 
 	/**
 	 * @param serviceName the name of the service to announce
@@ -70,6 +74,8 @@ public class Discovery {
 		this.addr = addr;
 		this.serviceName = serviceName;
 		this.serviceURI = serviceURI;
+		this.knownServices = new ConcurrentHashMap<>();
+
 
 		if (this.addr == null) {
 			throw new RuntimeException("A multinet address has to be provided.");
@@ -83,13 +89,27 @@ public class Discovery {
 		this(addr, null, null);
 	}
 
-	private void insertOnQueue(String serviceName, String serviceURI) {
-		try  {
-			knownServices.get(serviceName).add(serviceURI);
-		} catch ( Exception e) {
-			Queue<String> newQueue = new ArrayDeque<String>();
-			newQueue.add(serviceURI);
-			knownServices.put(serviceName, newQueue);
+	private void addNewService(String serviceName, URI uri) {
+		synchronized (mutex) {
+			List<URI> uris = knownServices.get(serviceName);
+			if (uris == null) {
+				uris = new LinkedList<>();
+				uris.add(uri);
+				knownServices.put(serviceName, uris);
+			}
+			else {
+				boolean canAdd = true;
+				for (URI u : uris) {
+					if (u.equals(uri)) {
+						canAdd = false;
+						break;
+					}
+				}
+				if (canAdd) {
+					uris.add(uri);
+				}
+			}
+			mutex.notifyAll();
 		}
 	}
 
@@ -138,7 +158,7 @@ public class Discovery {
 					if (msgElems.length == 2) { // periodic announcement
 						System.out.printf("FROM %s (%s) : %s\n", pkt.getAddress().getHostName(),
 								pkt.getAddress().getHostAddress(), msg);
-						// TODO: to complete by recording the received information
+						addNewService(msgElems[0], URI.create(msgElems[1]));
 					}
 				} catch (IOException e) {
 					// do nothing
@@ -156,9 +176,15 @@ public class Discovery {
 	 * @return an array of URI with the service instances discovered.
 	 * 
 	 */
-	public URI[] knownUrisOf(String serviceName, int minReplies) {
-		// TODO: implement this method
-		throw new Error("Not Implemented...");
+	public URI[] knownUrisOf(String serviceName, int minReplies) throws InterruptedException {
+		synchronized (mutex) {
+			List<URI> uris = knownServices.get(serviceName);
+			while(uris == null ||  uris.size() < minReplies) {
+				mutex.wait();
+				uris = knownServices.get(serviceName);
+			}
+			return uris.toArray(new URI[uris.size()]);
+		}
 	}
 
 	// Main just for testing purposes

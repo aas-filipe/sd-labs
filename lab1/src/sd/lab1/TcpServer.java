@@ -15,9 +15,9 @@ public class TcpServer {
 
 	public static void main(String[] args) throws Exception {
         
-		//TODO: Use Discovery to announce the uri of this server, in the form of (tcp://hostname:port)
-
-        
+        Discovery d = new Discovery(Discovery.DISCOVERY_ADDR, "Teste",
+                "tcp://" + InetAddress.getLocalHost().getHostAddress() + ":" + PORT);
+        d.start();
 		//Create a server socket and wait for incoming TCP connections from client
 		try(ServerSocket ssocket = new ServerSocket( PORT )) {
 			Log.info("My IP address is: " + InetAddress.getLocalHost().getHostAddress());
