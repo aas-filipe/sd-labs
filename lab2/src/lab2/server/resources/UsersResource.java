@@ -4,10 +4,12 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.WebApplicationException;
@@ -78,22 +80,31 @@ public class UsersResource implements RestUsers {
 	@Override
 	public User updateUser(String userId, String password, User user) {
 		Log.info("updateUser : user = " + userId + "; pwd = " + password + " ; userData = " + user);
-		// TODO: Complete method
-		throw new WebApplicationException(Status.NOT_IMPLEMENTED);
+		User oldUser = getUser(userId, password);
+		users.put(oldUser.getUserId(), user);
+		return oldUser;
 	}
 
 	@Override
 	public User deleteUser(String userId, String password) {
 		Log.info("deleteUser : user = " + userId + "; pwd = " + password);
-		// TODO: Complete method
-		throw new WebApplicationException(Status.NOT_IMPLEMENTED);
+		User oldUser = getUser(userId, password);
+		return users.remove(userId);
 	}
 
 	@Override
 	public List<User> searchUsers(String pattern) {
 		Log.info("searchUsers : pattern = " + pattern);
-		// TODO: Complete method
-		throw new WebApplicationException(Status.NOT_IMPLEMENTED);
+		List<User> selectedUser = new ArrayList<User>();
+		if (pattern == null || pattern.isEmpty()) {
+			return new ArrayList<>(users.values());
+		}
+		for (User user : users.values()) {
+			if (user.getFullName().contains(pattern)){
+				selectedUser.add(user);
+			}
+		}
+		return selectedUser;
 	}
 
 	@Override
@@ -120,7 +131,17 @@ public class UsersResource implements RestUsers {
 	public void removeAvatar(String userId, String password) {
 		Log.info("delete an avatar : user = " + userId + "; pwd = " + password);
 
-		// TODO: complete method
+		User usr = getUser(userId, password);
+		Path pathToFile = Paths.get(AVATAR_DIRECTORY + File.separator + usr.getUserId() + ".png");
+
+		try {
+			if (!Files.deleteIfExists(pathToFile)) {
+				throw new WebApplicationException(Status.NOT_FOUND);
+			}
+		} catch (Exception e) {
+			throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
+		}
+
 	}
 
 	@Override

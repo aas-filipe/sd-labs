@@ -19,6 +19,7 @@ public class CreateUserClient {
 	public static void main(String[] args) throws IOException {
 		
 		if( args.length != 5) {
+			System.err.println(args.length + " arguments required");
 			System.err.println( "Use: java " + CreateUserClient.class.getCanonicalName() + " url userId fullName email password");
 			return;
 		}
@@ -30,7 +31,7 @@ public class CreateUserClient {
 		String password = args[4];
 		
 		User usr = new User( userId, fullName, email, password);
-		
+
 		System.out.println("Sending request to server.");
 		
 		ClientConfig config = new ClientConfig();
