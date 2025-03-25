@@ -77,15 +77,56 @@ public class UsersResource implements RestUsers {
 	@Override
 	public User updateUser(String userId, String password, User user) {
 		Log.info("updateUser : user = " + userId + "; pwd = " + password + " ; userData = " + user);
-		// TODO: Complete method
-		throw new WebApplicationException(Status.NOT_IMPLEMENTED);
+		if (userId == null || password == null) {
+			Log.info("Userid or password null.");
+			throw new WebApplicationException(Status.BAD_REQUEST);
+		}
+		User oldUser = null;
+		try{
+			oldUser = hibernate.get(User.class, userId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
+		}
+		if(oldUser == null){
+			Log.info("User does not exist.");
+			throw new WebApplicationException(Status.NOT_FOUND);
+		}
+		if (!oldUser.getPassword().equals(password)) {
+			Log.info("Password is incorrect.");
+			throw new WebApplicationException(Status.FORBIDDEN);
+		}
+		hibernate.update(user);
+		return user;
 	}
 
 	@Override
 	public User deleteUser(String userId, String password) {
 		Log.info("deleteUser : user = " + userId + "; pwd = " + password);
-		// TODO: Complete method
-		throw new WebApplicationException(Status.NOT_IMPLEMENTED);
+		if (userId == null || password == null) {
+			Log.info("UserId or password null.");
+			throw new WebApplicationException(Status.BAD_REQUEST);
+		}
+
+		User user = null;
+		try{
+			user = hibernate.get(User.class, userId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
+		}
+
+		if(user == null){
+			Log.info("User does not exist.");
+			throw new WebApplicationException(Status.NOT_FOUND);
+		}
+		if (!user.getPassword().equals(password)) {
+			Log.info("Password is incorrect.");
+			throw new WebApplicationException(Status.FORBIDDEN);
+		}
+
+		hibernate.delete(user);
+		return user;
 	}
 
 	@Override

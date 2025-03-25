@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 
 import lab3.clients.rest.RestUsersClient;
 
-public class GetUserClient {
+public class 	GetUserClient {
 	
 	private static Logger Log = Logger.getLogger(GetUserClient.class.getName());
 

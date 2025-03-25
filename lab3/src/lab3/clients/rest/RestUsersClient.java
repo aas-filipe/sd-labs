@@ -21,103 +21,125 @@ import lab3.api.service.RestUsers;
 import lab3.api.Result.ErrorCode;
 
 public class RestUsersClient {
-	private static Logger Log = Logger.getLogger(RestUsersClient.class.getName());
+    protected static final int READ_TIMEOUT = 5000;
+    protected static final int CONNECT_TIMEOUT = 5000;
+    protected static final int MAX_RETRIES = 10;
+    protected static final int RETRY_SLEEP = 5000;
+    private static Logger Log = Logger.getLogger(RestUsersClient.class.getName());
+    final URI serverURI;
+    final Client client;
+    final ClientConfig config;
 
-	protected static final int READ_TIMEOUT = 5000;
-	protected static final int CONNECT_TIMEOUT = 5000;
+    final WebTarget target;
 
-	protected static final int MAX_RETRIES = 10;
-	protected static final int RETRY_SLEEP = 5000;
+    public RestUsersClient(URI serverURI) {
+        this.serverURI = serverURI;
 
-	
-	final URI serverURI;
-	final Client client;
-	final ClientConfig config;
+        this.config = new ClientConfig();
 
-	final WebTarget target;
-	
-	public RestUsersClient( URI serverURI ) {
-		this.serverURI = serverURI;
+        config.property(ClientProperties.READ_TIMEOUT, READ_TIMEOUT);
+        config.property(ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
 
-		this.config = new ClientConfig();
-		
-		config.property( ClientProperties.READ_TIMEOUT, READ_TIMEOUT);
-		config.property( ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
 
-		
-		this.client = ClientBuilder.newClient(config);
+        this.client = ClientBuilder.newClient(config);
 
-		target = client.target( serverURI ).path( RestUsers.PATH );
-	}
-		
-	public Result<String> createUser(User user) {
-		
-		for(int i = 0; i < MAX_RETRIES ; i++) {
-			try {
-				Response r = target.request()
-						.accept( MediaType.APPLICATION_JSON)
-						.post(Entity.entity(user, MediaType.APPLICATION_JSON));
-				
-				
-				int status = r.getStatus();
-				if( status != Status.OK.getStatusCode() )
-					return Result.error( getErrorCodeFrom(status));
-				else
-					return Result.ok( r.readEntity( String.class ));
-				
-			} catch( ProcessingException x ) {
-				Log.info(x.getMessage());
-				
-				try {
-					Thread.sleep(RETRY_SLEEP);
-				} catch (InterruptedException e) {
-					//Nothing to be done here.
-				}
-			}
-			catch( Exception x ) {
-				x.printStackTrace();
-			}
-		}
-		return Result.error(  ErrorCode.TIMEOUT );
-	}
+        target = client.target(serverURI).path(RestUsers.PATH);
+    }
 
-	public Result<User> getUser(String userId, String pwd) {
-		Response r = target.path( userId )
-				.queryParam(RestUsers.PASSWORD, pwd).request()
-				.accept(MediaType.APPLICATION_JSON)
-				.get();
+    public static ErrorCode getErrorCodeFrom(int status) {
+        return switch (status) {
+            case 200, 209 -> ErrorCode.OK;
+            case 409 -> ErrorCode.CONFLICT;
+            case 403 -> ErrorCode.FORBIDDEN;
+            case 404 -> ErrorCode.NOT_FOUND;
+            case 400 -> ErrorCode.BAD_REQUEST;
+            case 500 -> ErrorCode.INTERNAL_ERROR;
+            case 501 -> ErrorCode.NOT_IMPLEMENTED;
+            default -> ErrorCode.INTERNAL_ERROR;
+        };
+    }
 
-		int status = r.getStatus();
-		if( status != Status.OK.getStatusCode() )
-			return Result.error( getErrorCodeFrom(status));
-		else
-			return Result.ok( r.readEntity( User.class ));
-	}
-	
-	
+    public Result<String> createUser(User user) {
 
-	public Result<User> updateUser(String userId, String password, User user) {
-		throw new RuntimeException("Not Implemented...");		
-	}
+        for (int i = 0; i < MAX_RETRIES; i++) {
+            try {
+                Response r = target.request()
+                        .accept(MediaType.APPLICATION_JSON)
+                        .post(Entity.entity(user, MediaType.APPLICATION_JSON));
 
-	public Result<User> deleteUser(String userId, String password) {
-		throw new RuntimeException("Not Implemented...");
-	}
 
-	public Result<List<User>> searchUsers(String pattern) {
-		throw new RuntimeException("Not Implemented...");
-	}
+                int status = r.getStatus();
+                if (status != Status.OK.getStatusCode())
+                    return Result.error(getErrorCodeFrom(status));
+                else
+                    return Result.ok(r.readEntity(String.class));
 
-	public static ErrorCode getErrorCodeFrom(int status) {
-		return switch (status) {
-		case 200, 209 -> ErrorCode.OK;
-		case 409 -> ErrorCode.CONFLICT;
-		case 403 -> ErrorCode.FORBIDDEN;
-		case 404 -> ErrorCode.NOT_FOUND;
-		case 400 -> ErrorCode.BAD_REQUEST;
-		case 500 -> ErrorCode.INTERNAL_ERROR;
-		case 501 -> ErrorCode.NOT_IMPLEMENTED;
-		default -> ErrorCode.INTERNAL_ERROR;
-		};
-	}
+            } catch (ProcessingException x) {
+                Log.info(x.getMessage());
+
+                try {
+                    Thread.sleep(RETRY_SLEEP);
+                } catch (InterruptedException e) {
+                    //Nothing to be done here.
+                }
+            } catch (Exception x) {
+                x.printStackTrace();
+            }
+        }
+        return Result.error(ErrorCode.TIMEOUT);
+    }
+
+    public Result<User> getUser(String userId, String pwd) {
+        Response r = target.path(userId)
+                .queryParam(RestUsers.PASSWORD, pwd).request()
+                .accept(MediaType.APPLICATION_JSON)
+                .get();
+
+        int status = r.getStatus();
+        if (status != Status.OK.getStatusCode())
+            return Result.error(getErrorCodeFrom(status));
+        else
+            return Result.ok(r.readEntity(User.class));
+    }
+
+    public Result<User> updateUser(String userId, String password, User user) {
+        Response r = target.path(userId)
+                .queryParam(RestUsers.PASSWORD, password).request()
+                .accept(MediaType.APPLICATION_JSON)
+                .put(Entity.entity(user, MediaType.APPLICATION_JSON));
+
+        int status = r.getStatus();
+        if (status != Status.OK.getStatusCode()) {
+            return Result.error(getErrorCodeFrom(status));
+        } else {
+            return Result.ok(r.readEntity(User.class));
+        }
+    }
+
+    public Result<User> deleteUser(String userId, String password) {
+        Response r = target.path(userId)
+                .queryParam(RestUsers.PASSWORD, password).request()
+                .accept(MediaType.APPLICATION_JSON)
+                .delete();
+
+        int status = r.getStatus();
+        if (status != Status.OK.getStatusCode()) {
+            return Result.error(getErrorCodeFrom(status));
+        } else {
+            return Result.ok(r.readEntity(User.class));
+        }
+    }
+
+    public Result<List<User>> searchUsers(String pattern) {
+        Response r = target.request()
+                .accept(MediaType.APPLICATION_JSON)
+                .get();
+        int status = r.getStatus();
+
+        if (status != Status.OK.getStatusCode()) {
+            return Result.error(getErrorCodeFrom(status));
+        } else {
+            return Result.ok(r.readEntity(List.class));
+        }
+    }
 }

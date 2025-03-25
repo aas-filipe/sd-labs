@@ -133,9 +133,9 @@ public class Hibernate {
 	 * @param clazz - the class of the objects that will be returned
 	 * @return - list of objects that match the query
 	 */
-	public <T> List<T> sql(String sqlStatement, Class<T> clazz) {
+	public <T> List<T> sql(String jpqlStatement, Class<T> clazz) {
 		try(var session = sessionFactory.openSession()) {
-			var query = session.createNativeQuery(sqlStatement, clazz);
+			var query = session.createNativeQuery(jpqlStatement, clazz);
         	return query.list();
 		} catch (Exception e) {
 		    throw e;
