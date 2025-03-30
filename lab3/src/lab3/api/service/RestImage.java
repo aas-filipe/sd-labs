@@ -9,22 +9,24 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import java.io.IOException;
+
 @Path(RestImage.PATH)
 public interface RestImage {
 
 	public static final String PATH = "/image";
-	public static final String IMAGE_ID = "/id";
+	public static final String IMAGE_ID = "id";
 	
 	/**
 	 * Create an image
 	 * 
-	 * @param imageContent the bytes of the image in PNG format (in the body of the request)
+	 * @param imageContents the bytes of the image in PNG format (in the body of the request)
 	 * @return 200 in the case of success returning the URI to access the image. 
 	 * 		   400 if imageContents has a size of zero
 	 */
 	@POST
 	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
-	String createImage(byte[] imageContents);
+	String createImage(byte[] imageContents) throws IOException;
 
 	/**
 	 * Gets the contents of an image associated with the imageId
@@ -34,7 +36,7 @@ public interface RestImage {
 	 *  404 should be returned if the image does not exists
 	 */
 	@GET
-	@Path("{" + IMAGE_ID + "}")
+	@Path("/{" + IMAGE_ID + "}")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	byte[] getImage(@PathParam(IMAGE_ID) String imageId);
 	
@@ -45,7 +47,7 @@ public interface RestImage {
 	 * @return 204 in the case of success. 404 if the image does not exists
 	 */
 	@DELETE
-	@Path("{" + IMAGE_ID + "}/")
+	@Path("/{" + IMAGE_ID + "}/")
 	void deleteImage(@PathParam(IMAGE_ID) String imageId);
 	
 	
