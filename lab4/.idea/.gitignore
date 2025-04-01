@@ -8,4 +8,4 @@
 /dataSources.local.xml
 
 # Do not save the compiled project
-/target/
+*/target/*
