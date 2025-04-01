@@ -6,4 +6,6 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-/target/*
+
+# Do not save the compiled project
+/target/
