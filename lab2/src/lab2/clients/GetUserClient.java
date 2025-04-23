@@ -47,5 +47,6 @@ public class GetUserClient {
 			System.out.println("Error, HTTP error status: " + r.getStatus() );
 
 	}
+
 	
 }

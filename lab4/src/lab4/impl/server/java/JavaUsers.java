@@ -130,6 +130,10 @@ public class JavaUsers implements Users {
 
     @Override
     public Result<List<User>> searchUsers(String pattern) {
+        if (pattern == null || pattern.isEmpty()) {
+            Log.info("searchUsers : pattern is null.");
+            return Result.error(ErrorCode.BAD_REQUEST);
+        }
 
         return null;
     }
